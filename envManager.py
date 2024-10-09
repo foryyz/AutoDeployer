@@ -5,7 +5,6 @@ import subprocess
 import yaml
 from tqdm import tqdm
 
-
 class EnvLoader:
     def __init__(self):
         self._env_list = self.__return_env_list()
@@ -80,6 +79,7 @@ class EnvLoader:
 
     def get_env_check_type(self, env_name):# 识别检测模式
         if self.get_env_var(env_name) and self.get_env_path(env_name):
+            #如果是系统变量方式 则返回1
             return 1
         return 0
 
@@ -92,13 +92,12 @@ class EnvChecker:
         print("正在准备环境检验器...")
 
     def check_env_var(self, env_name ,env_var):
-        print("正在执行系统变量的检测...")
         env_value=os.getenv(env_var)
         if env_value:
             print(f"Environment variable {env_var} is set to {env_value}")
             return True
         else:
-            print(f"未检测到系统变量 {env_var} ")
+            print(f"\t\t→ 未检测到系统变量 {env_var} ")
             return False
 
     def check_env_default_paths(self, env_name, paths):
@@ -156,22 +155,25 @@ class EnvInstaller:
         print("\n解压完成。")
 
     def __env_install(self, env_var, env_path):
-        e_var = env_var
-        e_path = env_path
         print("开始部署环境变量...")
-        print(f"设置{e_var}为: {env_path}")
+        print(f"设置{env_var}为: {env_path}")
         subprocess.run(["powershell", "-Command",
-                        f"[System.Environment]::SetEnvironmentVariable('{e_var}', '{e_path}', 'User')"])
+                        f"[System.Environment]::SetEnvironmentVariable('{env_var}', '{env_path}', 'User')"])
 
-        print(f"添加{e_var}到系统PATH中...")
+        print(f"添加{env_var}到系统PATH中...")
         subprocess.run(["powershell", "-Command",
-                        f"$env:Path += ';{e_path}/bin'; [System.Environment]::SetEnvironmentVariable('Path', $env:Path, 'User')"])
+                        f"$env:Path += ';{env_path}/bin'; [System.Environment]::SetEnvironmentVariable('Path', $env:Path, 'User')"])
 
         print("\n环境变量设置成功。")
 
-    def env_uninstall(self, env_name, log_path = 'used.log'):
-        pass
-    def __env_uninstall(self, env_var, env_path):
+
+class EnvUnstaller:
+    def __init__(self, env_name, env_var=None, env_path=None):
+        print("开始执行环境卸载...")
+        if env_var and env_path:
+            print("执行环境变量卸载")
+            self.__env_uninstall_var(env_var, env_path)
+    def __env_uninstall_var(self, env_var, env_path):
         e_var=env_var
         e_path=env_path
         print("开始删除环境变量...")
@@ -188,24 +190,3 @@ class EnvInstaller:
                         f"[System.Environment]::SetEnvironmentVariable('Path', $env:Path, 'User')"])
 
         print("\n环境变量删除成功。")
-
-# if __name__ == '__main__':
-#     eload = EnvLoader()
-#     print("目前支持以下环境的一键部署: ")
-#     for e_name in eload._env_name_list:
-#         print("\t",e_name)
-#     env_name = input("应用程序启动完成！\n请输入你要安装的环境昵称: ")
-#
-#     # env_var = eload.get_env_var(env_name)
-#     # env_default_paths = eload.get_default_paths(env_name)
-#     # print("\n变量初始化成功...")
-#     #
-#     # print("\n开始执行环境安装检测...")
-#     # if env_var:
-#     #     print("\t- 系统变量检测")
-#     #     echeck.check_env_var(env_name,env_var)
-#     # if env_default_paths:
-#     #     print("\t- 默认路径检测")
-#
-#     echeck = EnvChecker(env_name)
-#     echeck.run_check()

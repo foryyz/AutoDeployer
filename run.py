@@ -21,5 +21,5 @@ if __name__ == '__main__':
             einstaller = EnvInstaller(env_name, env_url, env_download_path, env_install_path)
         elif eload.get_env_check_type(env_name) == 1:
             einstaller=EnvInstaller(env_name, env_url, env_download_path,env_install_path, env_var, env_path)
+        logloader.add_env_installed(env_name)
 
-    logloader.add_env_installed(env_name)

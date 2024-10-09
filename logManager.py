@@ -45,3 +45,31 @@ class LogLoader:
             with open(self.log_path, 'a', encoding='utf-8') as log_file:
                 log_file.write(f"{env_name}\n")  # 每个字符串后面加换行符
                 self.env_installed.append(env_name)
+        self.is_used = True
+
+    def del_env(self, env_name):
+        try:
+            self.env_installed.remove(env_name)
+            # 创建一个临时列表来存储不包含目标字符串的行
+            updated_lines=[]
+            # 读取文件并检查每一行
+            with open(self.log_path, 'r', encoding='utf-8') as log_file:
+                for line in log_file:
+                    # 如果当前行不包含目标字符串，则添加到临时列表
+                    if env_name not in line:
+                        updated_lines.append(line)
+
+            # 将更新后的内容写回文件
+            with open(self.log_path, 'w', encoding='utf-8') as log_file:
+                log_file.writelines(updated_lines)
+            return True
+        except ValueError:
+            #捕获 ValueError 异常，执行其他操作
+            print("ERROR! 未在日志中找到该环境!")
+            return False
+
+
+    def show_env_installed(self):
+        print("检测到您使用该软件安装了以下环境： ")
+        for env in self.env_installed:
+            print(env)
