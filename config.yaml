@@ -1,0 +1,24 @@
+environments:
+  - name: JDK
+    version: "23"
+    url: "https://download.oracle.com/java/23/latest/jdk-23_windows-x64_bin.zip"
+    download_path: "C:/AutoDeployToolsEnvs/Downloads/jdk-23.zip"
+    install_path: "C:/AutoDeployToolsEnvs/Envs/"
+    env_path: "C:/AutoDeployToolsEnvs/Envs/jdk-23"
+    check_way:
+      env_var: JAVA_HOME
+      default_path:
+        - "C:/Program Files/Java/jdk-*"
+        - "C:/Java/jdk-*"
+        - "C:/ENV/JDK8"
+
+  - name: Maven
+    version: "3.9.9"
+    url: "https://dlcdn.apache.org/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.zip"
+    download_path: "C:/AutoDeployToolsEnvs/Downloads/maven-3.zip"
+    install_path: "C:/AutoDeployToolsEnvs/Envs/"
+    env_path: "C:/AutoDeployToolsEnvs/Envs/apache-maven-3.9.9"
+    check_way:
+      default_path:
+        - "C:/Program Files/Python/python-*"
+        - "C:/Python/python-*"
