@@ -5,12 +5,16 @@ import subprocess
 import yaml
 from tqdm import tqdm
 
+MAIN_PATH = r'C:\AutoDeployToolsEnvs'
+DOWNLOAD_PATH = r'C:\AutoDeployToolsEnvs\Downloads'
+ENVS_PATH = r'C:\AutoDeployToolsEnvs\Envs'
+
 class EnvLoader:
     def __init__(self):
         self._env_list = self.__return_env_list()
         self._env_name_list = self.__return_env_name_list()
         print("正在初始化环境读取器...")
-        directory_paths=['C:/AutoDeployToolsEnvs','C:/AutoDeployToolsEnvs/Downloads','C:/AutoDeployToolsEnvs/Envs']
+        directory_paths=[MAIN_PATH,DOWNLOAD_PATH,ENVS_PATH]
         for directory_path in directory_paths:
             os.makedirs(directory_path, exist_ok=True)
 
@@ -89,6 +93,7 @@ class EnvChecker:
         self.env_name=env_name
         self.eload=eloadeR
         self.env_var = self.eload.get_env_var(env_name)
+
         print("正在准备环境检验器...")
 
     def check_env_var(self, env_name ,env_var):
@@ -131,16 +136,20 @@ class EnvInstaller:
 
 
     def __download_zip(self):
-        print("开始下载["+self.env_name+"]...")
-        print("\t- 下载链接为: ",self.url)
-        print("\t- 下载路径为: ",self.download_path)
-        with tqdm(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc= self.env_name+" 下载中") as t:
-            def reporthook(block_num, block_size, total_size):
-                if total_size > 0:
-                    t.total=total_size
-                    t.update(block_size * block_num - t.n)
+        print("开始下载[" + self.env_name + "]...")
 
-            urllib.request.urlretrieve(self.url, self.download_path, reporthook)
+        if os.path.isfile(self.download_path):
+            print("\t- 检测到您已下载该环境压缩包！")
+        else:
+            print("\t- 下载链接为: ", self.url)
+            print("\t- 下载路径为: ", self.download_path)
+            with tqdm(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=self.env_name + " 下载中") as t:
+                def reporthook(block_num, block_size, total_size):
+                    if total_size > 0:
+                        t.total=total_size
+                        t.update(block_size * block_num - t.n)
+
+                urllib.request.urlretrieve(self.url, self.download_path, reporthook)
         print("\n下载完成。")
 
     def __extract_zip(self):
@@ -161,32 +170,44 @@ class EnvInstaller:
                         f"[System.Environment]::SetEnvironmentVariable('{env_var}', '{env_path}', 'User')"])
 
         print(f"添加{env_var}到系统PATH中...")
+        real_paths=subprocess.run(["powershell", "-Command",
+                                   r'[System.Environment]::GetEnvironmentVariable("Path",[System.EnvironmentVariableTarget]::User)'],
+                                  text=True, capture_output=True, shell=True).stdout[:-1]
+        env_real_var=real_paths + env_path + ';'
         subprocess.run(["powershell", "-Command",
-                        f"$env:Path += ';{env_path}/bin'; [System.Environment]::SetEnvironmentVariable('Path', $env:Path, 'User')"])
+                        f"[System.Environment]::SetEnvironmentVariable('Path', '{env_real_var}', [System.EnvironmentVariableTarget]::User)"])
+        # 失败算法 ↓
+        # subprocess.run(["powershell", "-Command", f"[System.Environment]::SetEnvironmentVariable('Path', $env:PATH+';{env_path}', [System.EnvironmentVariableTarget]::User)"], shell=True)
 
         print("\n环境变量设置成功。")
 
 
-class EnvUnstaller:
+class EnvUninstaller:
     def __init__(self, env_name, env_var=None, env_path=None):
         print("开始执行环境卸载...")
         if env_var and env_path:
             print("执行环境变量卸载")
             self.__env_uninstall_var(env_var, env_path)
     def __env_uninstall_var(self, env_var, env_path):
-        e_var=env_var
-        e_path=env_path
         print("开始删除环境变量...")
 
         # 删除指定的环境变量
-        print(f"删除环境变量 {e_var}...")
-        subprocess.run(["powershell", "-Command",
-                        f"[System.Environment]::SetEnvironmentVariable('{e_var}', $null, 'User')"])
+        print(f"删除环境变量 {env_var}...")
+        subprocess.run(["powershell", "-Command", f"[System.Environment]::SetEnvironmentVariable('{env_var}', $null, 'User')"])
 
         # 从系统PATH中删除对应路径
-        print(f"从系统PATH中移除{e_path}/bin...")
-        subprocess.run(["powershell", "-Command",
-                        f"$env:Path = ($env:Path -split ';') -ne '{e_path}/bin' -join ';'; "
-                        f"[System.Environment]::SetEnvironmentVariable('Path', $env:Path, 'User')"])
+        print(f"从系统PATH中移除{env_path}...")
+        # 获取系统变量 PATH 的值
+        real_paths = subprocess.run(["powershell", "-Command",r'[System.Environment]::GetEnvironmentVariable("Path",[System.EnvironmentVariableTarget]::User)'], text=True, capture_output=True, shell=True).stdout
+        read_path_list = real_paths.split(';')
+        del read_path_list[-1] # 最后一个元素是换行符 要删除 不然会多一个;
+        over_path = ""
+        for read_path in read_path_list:
+            if read_path != env_path:
+                over_path += read_path + ";"
+        # over_path = over_path[:-1] # 最后一个字符是; 需要删除
+
+        subprocess.run(["powershell", "-Command", f"[System.Environment]::SetEnvironmentVariable('Path', '{over_path}', [System.EnvironmentVariableTarget]::User)"], shell=True)
+
 
         print("\n环境变量删除成功。")
