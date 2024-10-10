@@ -1,24 +1,42 @@
+# name      - 环境昵称
+# version   - 环境版本
+# url       - 环境 下载链接
+
+# path
+# zip_path  - zip压缩包路径
+# ENVS_PATH - 解压缩文件路径
+# env_path  - 环境文件夹路径
+
+# env_key
+# env_var   - 该环境的变量名
+# bin_paths - 该环境添加到PATH中的值
+
+
 environments:
   - name: JDK
     version: "23"
     url: "https://download.oracle.com/java/23/latest/jdk-23_windows-x64_bin.zip"
-    download_path: "C:\\AutoDeployToolsEnvs\\Downloads\\jdk-23.zip"
-    install_path: "C:\\AutoDeployToolsEnvs\\Envs\\"
-    env_path: "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23\\bin"
-    check_way:
+    path:
+      zip_path: "C:\\AutoDeployToolsEnvs\\Downloads\\jdk-23.zip"
+      ENVS_PATH: "C:\\AutoDeployToolsEnvs\\Envs\\"
+      env_path: "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23"
+    env_key:
       env_var: JAVA_HOME
-      default_path:
-        - "C:\\Program Files\\Java\\jdk-*"
-        - "C:\\Java\\jdk-*"
-        - "C:\\ENV\\JDK8"
+      bin_paths:
+        - "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23\\bin;"
+        - "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23\\jre\\bin;"
+#      default_path:
+#        - "C:\\Program Files\\Java\\jdk-*"
+#        - "C:\\Java\\jdk-*"
+#        - "C:\\ENV\\JDK8"
 
   - name: Maven
     version: "3.9.9"
     url: "https://dlcdn.apache.org/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.zip"
-    download_path: "C:\\AutoDeployToolsEnvs\\Downloads\\maven-3.zip"
-    install_path: "C:\\AutoDeployToolsEnvs\\Envs\\"
-    env_path: "C:\\AutoDeployToolsEnvs\\Envs\\apache-maven-3.9.9"
-    check_way:
-      default_path:
-        - "C:\\Program Files\\Python/python-*"
-        - "C:\\Python/python-*"
+    path:
+      zip_path: "C:\\AutoDeployToolsEnvs\\Downloads\\maven-3.zip"
+      ENVS_PATH: "C:\\AutoDeployToolsEnvs\\Envs\\"
+      env_path: "C:\\AutoDeployToolsEnvs\\Envs\\apache-maven-3.9.9"
+    env_key:
+      env_var: MAVEN_HOME
+      bin_paths: "C:\\AutoDeployToolsEnvs\\Envs\\apache-maven-3.9.9\\bin;"

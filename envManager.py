@@ -6,15 +6,16 @@ import yaml
 from tqdm import tqdm
 
 MAIN_PATH = r'C:\AutoDeployToolsEnvs'
-DOWNLOAD_PATH = r'C:\AutoDeployToolsEnvs\Downloads'
+ZIP_PATH = r'C:\AutoDeployToolsEnvs\Downloads'
 ENVS_PATH = r'C:\AutoDeployToolsEnvs\Envs'
 
 class EnvLoader:
     def __init__(self):
-        self._env_list = self.__return_env_list()
+        self._env_dict = self.__return_env_config_dict()
+        # print("DEBUG: _env_dict的值为： ",self._env_dict)
         self._env_name_list = self.__return_env_name_list()
         print("正在初始化环境读取器...")
-        directory_paths=[MAIN_PATH,DOWNLOAD_PATH,ENVS_PATH]
+        directory_paths=[MAIN_PATH,ZIP_PATH,ENVS_PATH]
         for directory_path in directory_paths:
             os.makedirs(directory_path, exist_ok=True)
 
@@ -22,33 +23,34 @@ class EnvLoader:
         with open("config.yaml", 'r', encoding='utf-8') as file:
             return yaml.safe_load(file)
 
-    def __return_env_list(self):
+    def __return_env_config_dict(self):
         config = self.__load_config()
         environments_dict={}
         for env in config.get('environments', []):
             name=env.get('name')
             version=env.get('version')
             url=env.get('url')
-            download_path=env.get('download_path')
-            install_path=env.get('install_path')
-            env_path=env.get('env_path')
-            check_way=env.get('check_way', {})
-            # print("check_way : " , check_way)
-            env_var=check_way.get('env_var', None)
-            # print("env_var : " , env_var)
-            default_paths=check_way.get('default_path', [])
-            # print("default_paths : " , default_paths)
+
+            zip_path=env.get('path')['zip_path']
+            ENVS_PATH=env.get('path')['ENVS_PATH']
+            env_path=env.get('path')['env_path']
+
+            env_key=env.get('env_key', {})
+            env_var = env_key.get('env_var',None)
+            bin_paths=env_key.get('bin_paths', [])
+            # default_paths=env_key.get('default_path', [])# 暂时移除对默认路径的检测
 
             # 将信息存储到字典中
             environments_dict[name]={
                 'version': version,
                 'url': url,
-                'install_path': install_path,
-                'download_path': download_path,
+                'ENVS_PATH': ENVS_PATH,
+                'zip_path': zip_path,
                 'env_path' : env_path,
-                'check_way': check_way,
+                'env_key': env_key,
                 'env_var': env_var,
-                'default_paths': default_paths
+                'bin_paths': bin_paths
+                # 'default_paths': default_paths
             }
         return environments_dict
 
@@ -60,43 +62,45 @@ class EnvLoader:
             env_name_list.append(name)
         return env_name_list
 
+    def get_env_download_url(self, env_name):
+        return self._env_dict[env_name]['url']
     def get_env_version(self, env_name):
-        return self._env_list[env_name]['version']
+        return self._env_dict[env_name]['version']
 
-    def get_env_download_path(self, env_name):
-        return self._env_list[env_name]['download_path']
-
-    def get_env_install_path(self, env_name):
-        return self._env_list[env_name]['install_path']
-
+    def get_env_zip_path(self, env_name):
+        return self._env_dict[env_name]['zip_path']
+    def get_ENVS_PATH(self, env_name):
+        return self._env_dict[env_name]['ENVS_PATH']
     def get_env_path(self, env_name):
-        return self._env_list[env_name]['env_path']
+        return self._env_dict[env_name]['env_path']
 
-    def get_env_url(self, env_name):
-        return self._env_list[env_name]['url']
-
+    def get_env_key(self, env_name):
+        return self._env_dict[env_name]['env_key']
     def get_env_var(self, env_name):
-        return self._env_list[env_name]['env_var']
+        return self._env_dict[env_name]['env_var']
+    def get_bin_paths(self, env_name):
+        return self._env_dict[env_name]['bin_paths']
+    # 暂时移除对默认路径的检测
+    # def get_default_paths(self, env_name):
+    #     return self._env_list[env_name]['default_paths']
 
-    def get_default_paths(self, env_name):
-        return self._env_list[env_name]['default_paths']
-
-    def get_env_check_type(self, env_name):# 识别检测模式
-        if self.get_env_var(env_name) and self.get_env_path(env_name):
-            #如果是系统变量方式 则返回1
-            return 1
+    def get_env_install_type(self, env_name):# 识别检测模式
+        if self.get_env_key(env_name):
+            #如果env_key值不为空，则为系统变量模式
+            return "env_key"
         return 0
 
 
 class EnvChecker:
-    def __init__(self, env_name, eloadeR):
+    def __init__(self, env_name, eloadeR, env_installed):
         self.env_name=env_name
         self.eload=eloadeR
+        self.env_installed=env_installed
         self.env_var = self.eload.get_env_var(env_name)
 
         print("正在准备环境检验器...")
 
-    def check_env_var(self, env_name ,env_var):
+    def check_env_var(self, env_var):
         env_value=os.getenv(env_var)
         if env_value:
             print(f"Environment variable {env_var} is set to {env_value}")
@@ -105,109 +109,157 @@ class EnvChecker:
             print(f"\t\t→ 未检测到系统变量 {env_var} ")
             return False
 
-    def check_env_default_paths(self, env_name, paths):
-        return
+    def __check_env_installed(self, env_name):
+        if env_name in self.env_installed:
+            return True
+        return False
+    # 暂时移除对默认路径的检测
+    # def check_env_default_paths(self, env_name, paths):
+    #     return
 
     def run_check(self):
         print("\n开始执行环境安装检测...")
         var=self.eload.get_env_var(self.env_name)
-        default_paths=self.eload.get_default_paths(self.env_name)
+        # default_paths=self.eload.get_default_paths(self.env_name)
+        if self.__check_env_installed(self.env_name):
+            print("检测到已安装过该程序")
+            return False
         if var:
             print("\t- 系统变量检测")
-            if self.check_env_var(self.env_name, self.env_var):
+            if self.check_env_var(self.env_var):
                 print("已存在该环境")
-                return True
-        if default_paths:
-            print("\t- 默认路径检测")
+                return False
 
-        return False
+        # 暂时移除对默认路径的检测
+        # if default_paths:
+        #     print("\t- 默认路径检测")
+
+        return True
 
 class EnvInstaller:
-    def __init__(self, env_name, url, download_path, install_path, env_var=None,env_path=None):
+    def __init__(self, env_name, eloadeR):
         self.env_name=env_name
-        self.url = url
-        self.download_path = download_path
-        self.install_path = install_path
-        self.__download_zip()
-        self.__extract_zip()
-        if env_var and env_path:
-            self.__env_install(env_var, env_path)
-
-
+        self.installed_over = False
+        eload=eloadeR
+        self.url = eload.get_env_download_url(self.env_name)
+        self.zip_path = eload.get_env_zip_path(self.env_name)
+        self.ENVS_PATH = eload.get_ENVS_PATH(self.env_name)
+        env_install_type=eload.get_env_install_type(self.env_name)
+        if env_install_type == "env_key":
+            self.__download_zip()
+            self.__extract_zip()
+            self.__env_key_install(eload.get_env_var(self.env_name), eload.get_env_path(self.env_name), eload.get_bin_paths(self.env_name))
+            self.installed_over = True
+        elif env_install_type == 0:
+            print("该环境不包含env_key")
+        else:
+            print("没有此类安装模式!")
 
     def __download_zip(self):
         print("开始下载[" + self.env_name + "]...")
 
-        if os.path.isfile(self.download_path):
+        if os.path.isfile(self.zip_path):
             print("\t- 检测到您已下载该环境压缩包！")
         else:
             print("\t- 下载链接为: ", self.url)
-            print("\t- 下载路径为: ", self.download_path)
+            print("\t- 压缩包路径为: ", self.zip_path)
             with tqdm(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=self.env_name + " 下载中") as t:
                 def reporthook(block_num, block_size, total_size):
                     if total_size > 0:
                         t.total=total_size
                         t.update(block_size * block_num - t.n)
 
-                urllib.request.urlretrieve(self.url, self.download_path, reporthook)
+                urllib.request.urlretrieve(self.url, self.zip_path, reporthook)
         print("\n下载完成。")
 
     def __extract_zip(self):
         print("开始解压["+self.env_name+"]...")
-        print("\t- 解压路径为 ", self.install_path)
-        with zipfile.ZipFile(self.download_path, 'r') as zip_ref:
+        print("\t- 解压路径为 ", self.ENVS_PATH)
+        with zipfile.ZipFile(self.zip_path, 'r') as zip_ref:
             file_list=zip_ref.namelist()
             with tqdm(total=len(file_list), unit='file', desc="解压中") as t:
                 for file in file_list:
-                    zip_ref.extract(file, self.install_path)
+                    zip_ref.extract(file, self.ENVS_PATH)
                     t.update(1)
         print("\n解压完成。")
 
-    def __env_install(self, env_var, env_path):
+    def __env_key_install(self, env_var, env_path, bin_paths):
         print("开始部署环境变量...")
         print(f"设置{env_var}为: {env_path}")
         subprocess.run(["powershell", "-Command",
                         f"[System.Environment]::SetEnvironmentVariable('{env_var}', '{env_path}', 'User')"])
 
-        print(f"添加{env_var}到系统PATH中...")
-        real_paths=subprocess.run(["powershell", "-Command",
+
+        now_paths = subprocess.run(["powershell", "-Command",
                                    r'[System.Environment]::GetEnvironmentVariable("Path",[System.EnvironmentVariableTarget]::User)'],
                                   text=True, capture_output=True, shell=True).stdout[:-1]
-        env_real_var=real_paths + env_path + ';'
+
+        over_bin_path="".join(b for b in bin_paths)
+        print(f"添加[{over_bin_path}]到系统PATH中...")
+        env_real_var = now_paths + over_bin_path
         subprocess.run(["powershell", "-Command",
                         f"[System.Environment]::SetEnvironmentVariable('Path', '{env_real_var}', [System.EnvironmentVariableTarget]::User)"])
         # 失败算法 ↓
         # subprocess.run(["powershell", "-Command", f"[System.Environment]::SetEnvironmentVariable('Path', $env:PATH+';{env_path}', [System.EnvironmentVariableTarget]::User)"], shell=True)
-
         print("\n环境变量设置成功。")
 
+    @property
+    def return_installed_over(self):
+        return self.installed_over
 
 class EnvUninstaller:
-    def __init__(self, env_name, env_var=None, env_path=None):
+    def __init__(self, env_name, eloadeR):
         print("开始执行环境卸载...")
-        if env_var and env_path:
+        self.env_name = env_name
+        eload=eloadeR
+        self.uninstalled_over=False
+        env_install_type=eload.get_env_install_type(self.env_name)
+        if env_install_type == "env_key":
             print("执行环境变量卸载")
-            self.__env_uninstall_var(env_var, env_path)
-    def __env_uninstall_var(self, env_var, env_path):
-        print("开始删除环境变量...")
+            self.__env_key_uninstall(eload.get_env_var(self.env_name), eload.get_bin_paths(self.env_name))
+            self.uninstalled_over=True
+        elif env_install_type == 0:
+            print("\n\t\tDEBUG: 这个环境的的install_type=0")
+        else:
+            pass
 
+    def __env_key_uninstall(self, env_var, bin_paths):
+        print("开始删除环境变量...")
+        # print("DEBUG: bin_paths的值为: ", bin_paths)
         # 删除指定的环境变量
         print(f"删除环境变量 {env_var}...")
         subprocess.run(["powershell", "-Command", f"[System.Environment]::SetEnvironmentVariable('{env_var}', $null, 'User')"])
 
         # 从系统PATH中删除对应路径
-        print(f"从系统PATH中移除{env_path}...")
+        print(f"从系统PATH中移除{''.join(b for b in bin_paths)}...")
         # 获取系统变量 PATH 的值
         real_paths = subprocess.run(["powershell", "-Command",r'[System.Environment]::GetEnvironmentVariable("Path",[System.EnvironmentVariableTarget]::User)'], text=True, capture_output=True, shell=True).stdout
         read_path_list = real_paths.split(';')
         del read_path_list[-1] # 最后一个元素是换行符 要删除 不然会多一个;
+
+        if type(bin_paths) == "<class 'list'>":
+            # print("检测到多个bin_path")
+            use_bin_paths=[bin_path.replace(';', '') for bin_path in bin_paths]  # 要先去掉分号才能进行比较
+        else:
+            # print("检测到一个bin_path")
+            use_bin_paths = bin_paths.replace(';', '')
+
+        # print("DEBUG: use_bin_paths:", use_bin_paths)
         over_path = ""
         for read_path in read_path_list:
-            if read_path != env_path:
-                over_path += read_path + ";"
-        # over_path = over_path[:-1] # 最后一个字符是; 需要删除
+            # print("正在检查的是："+read_path)
+            if read_path not in use_bin_paths:
+                # print("DEBUG: 放行")
+                over_path+=read_path + ";"
+            else:
+                # print("\t不放行")
+                print("\t- 成功在PATH变量中找到并删除!")
+
+        # over_path = over_path[:-1] # 最后一个字符是; 需要删除 #已优化为不需要删除
 
         subprocess.run(["powershell", "-Command", f"[System.Environment]::SetEnvironmentVariable('Path', '{over_path}', [System.EnvironmentVariableTarget]::User)"], shell=True)
-
-
         print("\n环境变量删除成功。")
+
+    @property
+    def return_uninstalled_over(self):
+        return self.uninstalled_over
