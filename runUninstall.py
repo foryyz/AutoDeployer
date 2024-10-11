@@ -16,8 +16,8 @@ if __name__ == '__main__':
             print("日志更新成功！")
         else:
             print("ERROR: 日志更新失败！")
-        print(f"\n程序执行完毕...\n\n您已成功卸载[{env_name}]！")
+        print(f"\nSuccess: 程序执行完毕.\n您已成功卸载[{env_name}]！")
     else:
-        print(f"\n可能发生了一些错误！\n\n[{env_name}]卸载失败！")
+        print(f"\n可能发生了一些错误！\n[{env_name}]卸载失败！")
 
 

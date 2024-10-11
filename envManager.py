@@ -14,7 +14,7 @@ class EnvLoader:
         self._env_dict = self.__return_env_config_dict()
         # print("DEBUG: _env_dict的值为： ",self._env_dict)
         self._env_name_list = self.__return_env_name_list()
-        print("正在初始化环境读取器...")
+        print("Tip: 正在初始化config读取器...")
         directory_paths=[MAIN_PATH,ZIP_PATH,ENVS_PATH]
         for directory_path in directory_paths:
             os.makedirs(directory_path, exist_ok=True)
@@ -98,10 +98,23 @@ class EnvChecker:
         self.env_installed=env_installed
         self.env_var = self.eload.get_env_var(env_name)
 
-        print("正在准备环境检验器...")
+        print("Tip: 正在准备环境检验器...")
 
     def check_env_var(self, env_var):
-        env_value=os.getenv(env_var)
+        # print(env_var)
+        # 可以优化
+        if isinstance(env_var, list):
+            for e_v in env_var:
+                for k in e_v.keys():
+                    env_value=os.getenv(k)
+
+        elif isinstance(env_var, str):
+            env_value=os.getenv(env_var)
+        else:
+            print("type(env_var)",type(env_var))
+            print("ERROR: env_var类型错误!")
+            exit(1)
+
         if env_value:
             print(f"Environment variable {env_var} is set to {env_value}")
             return True
@@ -118,7 +131,7 @@ class EnvChecker:
     #     return
 
     def run_check(self):
-        print("\n开始执行环境安装检测...")
+        print("开始执行环境安装检测...")
         var=self.eload.get_env_var(self.env_name)
         # default_paths=self.eload.get_default_paths(self.env_name)
         if self.__check_env_installed(self.env_name):
@@ -156,7 +169,7 @@ class EnvInstaller:
             print("没有此类安装模式!")
 
     def __download_zip(self):
-        print("开始下载[" + self.env_name + "]...")
+        print("\n开始下载[" + self.env_name + "]...")
 
         if os.path.isfile(self.zip_path):
             print("\t- 检测到您已下载该环境压缩包！")
@@ -170,10 +183,10 @@ class EnvInstaller:
                         t.update(block_size * block_num - t.n)
 
                 urllib.request.urlretrieve(self.url, self.zip_path, reporthook)
-        print("\n下载完成。")
+        print("下载完成。")
 
     def __extract_zip(self):
-        print("开始解压["+self.env_name+"]...")
+        print("\n开始解压["+self.env_name+"]...")
         print("\t- 解压路径为 ", self.ENVS_PATH)
         with zipfile.ZipFile(self.zip_path, 'r') as zip_ref:
             file_list=zip_ref.namelist()
@@ -181,13 +194,24 @@ class EnvInstaller:
                 for file in file_list:
                     zip_ref.extract(file, self.ENVS_PATH)
                     t.update(1)
-        print("\n解压完成。")
+        print("解压完成")
 
     def __env_key_install(self, env_var, env_path, bin_paths):
-        print("开始部署环境变量...")
-        print(f"设置{env_var}为: {env_path}")
-        subprocess.run(["powershell", "-Command",
-                        f"[System.Environment]::SetEnvironmentVariable('{env_var}', '{env_path}', 'User')"])
+        print("\n开始部署环境变量...")
+        # print(f"设置{env_var}为: {env_path}")
+        # print("DEBUG: env_var: ",env_var)
+        if isinstance(env_var,list):
+            print("\t- 检测到需要添加多个环境变量")
+            for e_v in env_var:
+                for k,v in e_v.items():
+                    print(f"\t\t- 正在设置环境变量{k}")
+                    subprocess.run(["powershell", "-Command",
+                                f"[System.Environment]::SetEnvironmentVariable('{k}', '{v}', 'User')"])
+
+        elif isinstance(env_var,str):
+            print("\t- 检测到单个环境变量")
+            subprocess.run(["powershell", "-Command",
+                            f"[System.Environment]::SetEnvironmentVariable('{env_var}', '{env_path}', 'User')"])
 
 
         now_paths = subprocess.run(["powershell", "-Command",
@@ -195,13 +219,13 @@ class EnvInstaller:
                                   text=True, capture_output=True, shell=True).stdout[:-1]
 
         over_bin_path="".join(b for b in bin_paths)
-        print(f"添加[{over_bin_path}]到系统PATH中...")
+        print(f"\t- 添加[{over_bin_path}]到系统PATH中...")
         env_real_var = now_paths + over_bin_path
         subprocess.run(["powershell", "-Command",
                         f"[System.Environment]::SetEnvironmentVariable('Path', '{env_real_var}', [System.EnvironmentVariableTarget]::User)"])
         # 失败算法 ↓
         # subprocess.run(["powershell", "-Command", f"[System.Environment]::SetEnvironmentVariable('Path', $env:PATH+';{env_path}', [System.EnvironmentVariableTarget]::User)"], shell=True)
-        print("\n环境变量设置成功。")
+        print("环境变量设置成功。")
 
     @property
     def return_installed_over(self):
@@ -209,13 +233,13 @@ class EnvInstaller:
 
 class EnvUninstaller:
     def __init__(self, env_name, eloadeR):
-        print("开始执行环境卸载...")
+        print("Tip: 开始执行环境卸载...")
         self.env_name = env_name
         eload=eloadeR
         self.uninstalled_over=False
         env_install_type=eload.get_env_install_type(self.env_name)
         if env_install_type == "env_key":
-            print("执行环境变量卸载")
+            # print("\t- 执行环境变量卸载")
             self.__env_key_uninstall(eload.get_env_var(self.env_name), eload.get_bin_paths(self.env_name))
             self.uninstalled_over=True
         elif env_install_type == 0:
@@ -224,20 +248,29 @@ class EnvUninstaller:
             pass
 
     def __env_key_uninstall(self, env_var, bin_paths):
-        print("开始删除环境变量...")
+        print("Tip: 开始删除环境变量...")
         # print("DEBUG: bin_paths的值为: ", bin_paths)
-        # 删除指定的环境变量
-        print(f"删除环境变量 {env_var}...")
-        subprocess.run(["powershell", "-Command", f"[System.Environment]::SetEnvironmentVariable('{env_var}', $null, 'User')"])
-
+        if isinstance(env_var,list):
+            print("\t- 检测到需要清理多个环境变量")
+            for e_v in env_var:
+                for k in e_v.keys():
+                    print(f"\t\t- 正在清理环境变量{k}")
+                    subprocess.run(["powershell", "-Command",
+                                    f"[System.Environment]::SetEnvironmentVariable('{k}', $null, 'User')"])
+        elif isinstance(env_var,str):
+            print("\t- 检测到单个环境变量")
+            subprocess.run(["powershell", "-Command", f"[System.Environment]::SetEnvironmentVariable('{env_var}', $null, 'User')"])
+        else:
+            print("ERROR: 未知错误!")
+            exit(1)
         # 从系统PATH中删除对应路径
-        print(f"从系统PATH中移除{''.join(b for b in bin_paths)}...")
+        print(f"\t- 从系统PATH中移除{''.join(b for b in bin_paths)}...")
         # 获取系统变量 PATH 的值
         real_paths = subprocess.run(["powershell", "-Command",r'[System.Environment]::GetEnvironmentVariable("Path",[System.EnvironmentVariableTarget]::User)'], text=True, capture_output=True, shell=True).stdout
         read_path_list = real_paths.split(';')
         del read_path_list[-1] # 最后一个元素是换行符 要删除 不然会多一个;
 
-        if type(bin_paths) == "<class 'list'>":
+        if isinstance(bin_paths,list):
             # print("检测到多个bin_path")
             use_bin_paths=[bin_path.replace(';', '') for bin_path in bin_paths]  # 要先去掉分号才能进行比较
         else:
@@ -253,12 +286,12 @@ class EnvUninstaller:
                 over_path+=read_path + ";"
             else:
                 # print("\t不放行")
-                print("\t- 成功在PATH变量中找到并删除!")
+                print("\t\t→ 成功在PATH变量中找到并删除一个!")
 
         # over_path = over_path[:-1] # 最后一个字符是; 需要删除 #已优化为不需要删除
 
         subprocess.run(["powershell", "-Command", f"[System.Environment]::SetEnvironmentVariable('Path', '{over_path}', [System.EnvironmentVariableTarget]::User)"], shell=True)
-        print("\n环境变量删除成功。")
+        print("Tip: 环境变量删除成功。")
 
     @property
     def return_uninstalled_over(self):

@@ -10,12 +10,13 @@ class LogLoader:
             self.load_env_installed()
             if len(self.env_installed)>0:
                 self.is_used = True
-                print(f"\t- 读取到{len(self.env_installed)}个环境已被安装\n")
+                print(f"\t- 读取到{len(self.env_installed)}个环境已被安装]")
+                # print(f"\t- 读取到已安装环境-[{(e_i+';'+e_i for e_i in self.env_installed)}]")
             else:
                 print("\t- 未读取到使用该程序安装的环境！")
         else:
             print("未检测到日志文件!")
-        print("成功加载日志器\n")
+        print("Tip: 成功加载日志器\n")
 
     def check_log_exist(self):
         # 检测文件是否存在
@@ -63,7 +64,7 @@ class LogLoader:
     def show_env_installed(self):
         print("检测到您使用该软件安装了以下环境： ")
         for env in self.env_installed:
-            print(env)
+            print("\t- ", env)
 
     @property
     def get_env_installed(self):
