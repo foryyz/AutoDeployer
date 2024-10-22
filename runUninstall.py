@@ -1,5 +1,5 @@
-from envManager import EnvLoader, EnvUninstaller
-from logManager import LogLoader
+from env_manager import EnvLoader, EnvUninstaller
+from log_manager import LogLoader
 
 if __name__ == '__main__':
     eload=EnvLoader()

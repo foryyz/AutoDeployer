@@ -1,113 +1,99 @@
 import os
-import urllib
+import urllib.request
 import zipfile
 import subprocess
-import yaml
 from tqdm import tqdm
 
-MAIN_PATH = r'C:\AutoDeployToolsEnvs'
-ZIP_PATH = r'C:\AutoDeployToolsEnvs\Downloads'
-ENVS_PATH = r'C:\AutoDeployToolsEnvs\Envs'
+import Util
+from file_loader import FileLoader
 
 class EnvLoader:
-    def __init__(self):
-        self._env_dict = self.__return_env_config_dict()
-        # print("DEBUG: _env_dict的值为： ",self._env_dict)
-        self._env_name_list = self.__return_env_name_list()
+    def __init__(self, CONFIG_YAML = Util.CONFIG_YAML):
+        self.config = FileLoader(CONFIG_YAML).load_date
+        self.config_dict = self.__get_config_dict() # 将config文件转化为字典格式存储
+        self.env_name_list = self.__get_env_name_list() # 读取可以安装的环境列表
         print("Tip: 正在初始化config读取器...")
-        directory_paths=[MAIN_PATH,ZIP_PATH,ENVS_PATH]
-        for directory_path in directory_paths:
-            os.makedirs(directory_path, exist_ok=True)
 
-    def __load_config(self):
-        with open("config.yaml", 'r', encoding='utf-8') as file:
-            return yaml.safe_load(file)
+    def __get_config_dict(self):
+        # 使用FileLoader读取配置文件
+        config_dict = {}
+        for env in self.config.get('environments', []):
+            name = env.get('name')
+            version = env.get('version')
+            url = env.get('url')
 
-    def __return_env_config_dict(self):
-        config = self.__load_config()
-        environments_dict={}
-        for env in config.get('environments', []):
-            name=env.get('name')
-            version=env.get('version')
-            url=env.get('url')
+            zip_path = env.get('path')['zip_path']
+            ENVS_PATH = env.get('path')['ENVS_PATH']
+            env_path = env.get('path')['env_path']
 
-            zip_path=env.get('path')['zip_path']
-            ENVS_PATH=env.get('path')['ENVS_PATH']
-            env_path=env.get('path')['env_path']
-
-            env_key=env.get('env_key', {})
-            env_var = env_key.get('env_var',None)
-            bin_paths=env_key.get('bin_paths', [])
+            env_key = env.get('env_key', {})
+            env_var = env_key.get('env_var', None)
+            bin_paths = env_key.get('bin_paths', [])
             # default_paths=env_key.get('default_path', [])# 暂时移除对默认路径的检测
 
             # 将信息存储到字典中
-            environments_dict[name]={
+            config_dict[name] = {
                 'version': version,
                 'url': url,
                 'ENVS_PATH': ENVS_PATH,
                 'zip_path': zip_path,
-                'env_path' : env_path,
+                'env_path': env_path,
                 'env_key': env_key,
                 'env_var': env_var,
                 'bin_paths': bin_paths
                 # 'default_paths': default_paths
             }
-        return environments_dict
-
-    def __return_env_name_list(self):
-        config=self.__load_config()
+        return config_dict
+    def __get_env_name_list(self):
         env_name_list=[]
-        for env in config.get('environments', []):
+        for env in self.config.get('environments', []):
             name=env.get('name')
             env_name_list.append(name)
         return env_name_list
 
     def get_env_download_url(self, env_name):
-        return self._env_dict[env_name]['url']
+        return self.config_dict[env_name]['url']
     def get_env_version(self, env_name):
-        return self._env_dict[env_name]['version']
-
+        return self.config_dict[env_name]['version']
     def get_env_zip_path(self, env_name):
-        return self._env_dict[env_name]['zip_path']
+        return self.config_dict[env_name]['zip_path']
     def get_ENVS_PATH(self, env_name):
-        return self._env_dict[env_name]['ENVS_PATH']
+        return self.config_dict[env_name]['ENVS_PATH']
     def get_env_path(self, env_name):
-        return self._env_dict[env_name]['env_path']
-
+        return self.config_dict[env_name]['env_path']
     def get_env_key(self, env_name):
-        return self._env_dict[env_name]['env_key']
+        return self.config_dict[env_name]['env_key']
     def get_env_var(self, env_name):
-        return self._env_dict[env_name]['env_var']
+        return self.config_dict[env_name]['env_var']
     def get_bin_paths(self, env_name):
-        return self._env_dict[env_name]['bin_paths']
-    # 暂时移除对默认路径的检测
-    # def get_default_paths(self, env_name):
-    #     return self._env_list[env_name]['default_paths']
-
+        return self.config_dict[env_name]['bin_paths']
     def get_env_install_type(self, env_name):# 识别检测模式
         if self.get_env_key(env_name):
             #如果env_key值不为空，则为系统变量模式
             return "env_key"
         return 0
-
+    # 暂时移除对默认路径的检测
+    # def get_default_paths(self, env_name):
+    #     return self._env_list[env_name]['default_paths']
 
 class EnvChecker:
-    def __init__(self, env_name, eloadeR, env_installed):
+    # env_installed由log_loader.py提供
+    def __init__(self, env_name, eloader, env_installed_log):
         self.env_name=env_name
-        self.eload=eloadeR
-        self.env_installed=env_installed
-        self.env_var = self.eload.get_env_var(env_name)
+        self.eloader=eloader
+        self.env_installed_log=env_installed_log
+        self.env_var = self.eloader.get_env_var(env_name)
 
         print("Tip: 正在准备环境检验器...")
 
-    def check_env_var(self, env_var):
-        # print(env_var)
-        # 可以优化
+
+    @staticmethod
+    def check_env_var(env_var):
+        # 先来检测 env_var 是不是多个，多个则循环检测
         if isinstance(env_var, list):
             for e_v in env_var:
                 for k in e_v.keys():
                     env_value=os.getenv(k)
-
         elif isinstance(env_var, str):
             env_value=os.getenv(env_var)
         else:
@@ -123,45 +109,46 @@ class EnvChecker:
             return False
 
     def __check_env_installed(self, env_name):
-        if env_name in self.env_installed:
-            return True
-        return False
+        if env_name in self.env_installed_log:
+            # 如果安装过 则返回False
+            return False
+        return True
     # 暂时移除对默认路径的检测
     # def check_env_default_paths(self, env_name, paths):
     #     return
 
+    # true表示正常，没有安装过环境
     def run_check(self):
         print("开始执行环境安装检测...")
-        var=self.eload.get_env_var(self.env_name)
+        var=self.eloader.get_env_var(self.env_name)
         # default_paths=self.eload.get_default_paths(self.env_name)
-        if self.__check_env_installed(self.env_name):
+        if not self.__check_env_installed(self.env_name):
             print("检测到已安装过该程序")
             return False
+
+        # 只有当env_var存在时才执行系统变量检测
         if var:
             print("\t- 系统变量检测")
             if self.check_env_var(self.env_var):
                 print("已存在该环境")
                 return False
-
         # 暂时移除对默认路径的检测
         # if default_paths:
         #     print("\t- 默认路径检测")
-
         return True
 
 class EnvInstaller:
-    def __init__(self, env_name, eloadeR):
+    def __init__(self, env_name, eloader):
         self.env_name=env_name
         self.installed_over = False
-        eload=eloadeR
-        self.url = eload.get_env_download_url(self.env_name)
-        self.zip_path = eload.get_env_zip_path(self.env_name)
-        self.ENVS_PATH = eload.get_ENVS_PATH(self.env_name)
-        env_install_type=eload.get_env_install_type(self.env_name)
+        self.url = eloader.get_env_download_url(self.env_name)
+        self.zip_path = eloader.get_env_zip_path(self.env_name)
+        self.ENVS_PATH = eloader.get_ENVS_PATH(self.env_name)
+        env_install_type=eloader.get_env_install_type(self.env_name)
         if env_install_type == "env_key":
             self.__download_zip()
             self.__extract_zip()
-            self.__env_key_install(eload.get_env_var(self.env_name), eload.get_env_path(self.env_name), eload.get_bin_paths(self.env_name))
+            self.__env_key_install(eloader.get_env_var(self.env_name), eloader.get_env_path(self.env_name), eloader.get_bin_paths(self.env_name))
             self.installed_over = True
         elif env_install_type == 0:
             print("该环境不包含env_key")
@@ -196,7 +183,9 @@ class EnvInstaller:
                     t.update(1)
         print("解压完成")
 
-    def __env_key_install(self, env_var, env_path, bin_paths):
+    # 设置环境变量和Path的方法
+    @staticmethod
+    def __env_key_install(env_var, env_path, bin_paths):
         print("\n开始部署环境变量...")
         # print(f"设置{env_var}为: {env_path}")
         # print("DEBUG: env_var: ",env_var)
@@ -232,15 +221,14 @@ class EnvInstaller:
         return self.installed_over
 
 class EnvUninstaller:
-    def __init__(self, env_name, eloadeR):
+    def __init__(self, env_name, eloader):
         print("Tip: 开始执行环境卸载...")
         self.env_name = env_name
-        eload=eloadeR
         self.uninstalled_over=False
-        env_install_type=eload.get_env_install_type(self.env_name)
+        env_install_type=eloader.get_env_install_type(self.env_name)
         if env_install_type == "env_key":
             # print("\t- 执行环境变量卸载")
-            self.__env_key_uninstall(eload.get_env_var(self.env_name), eload.get_bin_paths(self.env_name))
+            self.__env_key_uninstall(eloader.get_env_var(self.env_name), eloader.get_bin_paths(self.env_name))
             self.uninstalled_over=True
         elif env_install_type == 0:
             print("\n\t\tDEBUG: 这个环境的的install_type=0")
