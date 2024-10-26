@@ -1,5 +1,5 @@
 # 执行安装环境 - env_name
-from runner import Runner
+from core_func.runner import Runner
 
 # 执行安装环境 - env_name
 def install_env(env_name):

@@ -1,7 +1,7 @@
 import os
 
-from env_manager import EnvLoader, EnvChecker, EnvInstaller, EnvUninstaller
-from log_manager import LogLoader
+from core_func.env_manager import EnvLoader, EnvChecker, EnvInstaller, EnvUninstaller
+from core_func.log_manager import LogLoader
 
 MAIN_PATH = r'C:\AutoDeployToolsEnvs'
 ZIP_PATH = r'C:\AutoDeployToolsEnvs\Downloads'

@@ -4,12 +4,11 @@ import zipfile
 import subprocess
 from tqdm import tqdm
 
-CONFIG_YAML = "config.yaml"
-
+import core_func.config as config
 from file_loader import FileLoader
 
 class EnvLoader:
-    def __init__(self, CONFIG_YAML = CONFIG_YAML):
+    def __init__(self, CONFIG_YAML = config.CONFIG_YAML):
         self.config = FileLoader(CONFIG_YAML).load_date
         self.config_dict = self.__get_config_dict() # 将config文件转化为字典格式存储
         self.env_name_list = self.__get_env_name_list() # 读取可以安装的环境列表
@@ -178,10 +177,17 @@ class EnvInstaller:
         print("\t- 解压路径为 ", self.ENVS_PATH)
         with zipfile.ZipFile(self.zip_path, 'r') as zip_ref:
             file_list=zip_ref.namelist()
+            # !!!yyz - 待更新
+            # 有最高层文件夹的情况
+            if file_list[0].count('/') == 1 and file_list[0].endswith('/'):
+                print("检测到最高层文件夹")
+            else:
+                print("检测到没有最高层文件夹")
             with tqdm(total=len(file_list), unit='file', desc="解压中") as t:
                 for file in file_list:
                     zip_ref.extract(file, self.ENVS_PATH)
                     t.update(1)
+
         print("解压完成")
 
     # 设置环境变量和Path的方法

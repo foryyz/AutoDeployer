@@ -1,7 +1,8 @@
 import os
+import core_func.config as config
 
 class LogLoader:
-    def __init__(self, log_path='used.log'):
+    def __init__(self, log_path=config.LOG_PATH):
         self.log_path = log_path
         self.env_installed = []
         self.is_used = False
@@ -10,7 +11,7 @@ class LogLoader:
             self.load_env_installed()
             if len(self.env_installed)>0:
                 self.is_used = True
-                print(f"\t- 读取到{len(self.env_installed)}个环境已被安装]")
+                print(f"\t- 读取到{len(self.env_installed)}个环境已被安装")
                 # print(f"\t- 读取到已安装环境-[{(e_i+';'+e_i for e_i in self.env_installed)}]")
             else:
                 print("\t- 未读取到使用该程序安装的环境！")
