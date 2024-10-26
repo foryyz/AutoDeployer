@@ -4,11 +4,12 @@ import zipfile
 import subprocess
 from tqdm import tqdm
 
-import Util
+CONFIG_YAML = "config.yaml"
+
 from file_loader import FileLoader
 
 class EnvLoader:
-    def __init__(self, CONFIG_YAML = Util.CONFIG_YAML):
+    def __init__(self, CONFIG_YAML = CONFIG_YAML):
         self.config = FileLoader(CONFIG_YAML).load_date
         self.config_dict = self.__get_config_dict() # 将config文件转化为字典格式存储
         self.env_name_list = self.__get_env_name_list() # 读取可以安装的环境列表

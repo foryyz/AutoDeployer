@@ -9,8 +9,8 @@ if __name__ == '__main__':
         exit(1)
     logloader.show_env_installed()
     env_name = input("您需要卸载的环境昵称是: ")
-    env_var = eload.get_env_var(env_name)
-    env_path = eload.get_env_path(env_name)
+    # env_var = eload.get_env_var(env_name)
+    # env_path = eload.get_env_path(env_name)
     if EnvUninstaller(env_name, eload).return_uninstalled_over:
         if logloader.del_env(env_name):
             print("日志更新成功！")
@@ -19,5 +19,3 @@ if __name__ == '__main__':
         print(f"\nSuccess: 程序执行完毕.\n您已成功卸载[{env_name}]！")
     else:
         print(f"\n可能发生了一些错误！\n[{env_name}]卸载失败！")
-
-
