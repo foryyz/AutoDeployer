@@ -1,11 +1,13 @@
 import os
+import subprocess
 import urllib.request
 import zipfile
-import subprocess
+
 from tqdm import tqdm
 
 import core_func.config as config
-from file_loader import FileLoader
+from core_func.file_loader import FileLoader
+
 
 class EnvLoader:
     def __init__(self, CONFIG_YAML = config.CONFIG_YAML):

@@ -19,14 +19,14 @@ environments:
     path:
       zip_path: "C:\\AutoDeployToolsEnvs\\Downloads\\jdk-23.zip"
       ENVS_PATH: "C:\\AutoDeployToolsEnvs\\Envs\\"
-      env_path: "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23"
+      env_path: "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23.0.1"
     env_key:
       env_var:
-        - JAVA_HOME:  "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23"
+        - JAVA_HOME:  "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23.0.1"
         - CLASSPATH:  ".;%JAVA_HOME%\\lib;%JAVA_HOME%\\lib\\tools.jar"
       bin_paths:
-        - "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23\\bin;"
-        - "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23\\jre\\bin;"
+        - "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23.0.1\\bin;"
+        - "C:\\AutoDeployToolsEnvs\\Envs\\jdk-23.0.1\\jre\\bin;"
 #      default_path:
 #        - "C:\\Program Files\\Java\\jdk-*"
 #        - "C:\\Java\\jdk-*"

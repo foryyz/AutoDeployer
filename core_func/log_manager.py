@@ -1,5 +1,7 @@
 import os
+
 import core_func.config as config
+
 
 class LogLoader:
     def __init__(self, log_path=config.LOG_PATH):
