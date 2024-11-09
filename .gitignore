@@ -2,3 +2,7 @@
 /.venv
 /build
 /dist
+/__pycache__
+/asse/__pycache__
+/core_func/__pycache__
+/entity/__pycache__
